@@ -48,7 +48,7 @@ while getopts "lhj:" opt; do
 	    fi
 	    echo
 	    UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT)
-	    echo "Unit $UNIT has $JOB_ID"
+	    echo "Unit $UNIT has JOB_ID $JOB_ID"
 	    echo
 	    shift $((OPTIND-1))
 	    case $1 in
