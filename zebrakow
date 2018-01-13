@@ -14,7 +14,7 @@ function machine() {
 	MACHINE="$REMOTE_HOST"
 	export SYSTEMD_RUN_MACHINE="$REMOTE_HOST"
     fi
-    export RUN="machinectl --quiet $MACHINE shell /bin/bassh -c $@"
+    export RUN="machinectl --quiet $MACHINE shell /bin/bash -c $@"
 }
 
 function metadata() {
