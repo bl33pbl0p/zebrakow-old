@@ -1,0 +1,85 @@
+#!/bin/bash
+#set -x
+job=0
+
+function metadata() {
+    if [[ -e /etc/machine-info ]]; then
+	source /etc/machine-info;
+    fi
+    echo "JOB_ID=$1"
+    echo "CMDLINE=$(cat /proc/$(systemctl status $UNIT | grep Main\ PID: | sed s/\ Main\ PID:\ //g | awk '{print $1}')/comm)"
+    echo "TIME=Running `systemctl status $UNIT | grep Active | sed s/\ \ \ Active:\ active\ \(running\)\ //g`"
+    #echo "TIME=$(readlink /run/zebrakow/$JOB_ID/TIME)"
+    echo "UNIT=$UNIT"
+    echo "SLICE=$(systemctl show -p Slice $UNIT | sed s/Slice=//g )"
+    echo "STATUS=$(systemctl status $UNIT | grep Status: | sed s/\ \ \ Status:\ //g)"
+    echo "PID=$(systemctl status $UNIT | grep Main\ PID: | sed s/\ Main\ PID:\ //g | awk '{print $1}')"
+    echo
+    echo "MEMORY=$(systemctl status $UNIT | grep Memory: | awk '{print $2}')"
+    echo "TASKS=$(systemctl status $UNIT | grep Tasks: | sed s/\ \ \ \ Tasks:\ //g)"
+    echo "CPU=$(systemctl status $UNIT | grep CPU: | awk '{print $2}')"
+    echo "CGROUP=$(systemctl status $UNIT | grep CGroup: | awk '{print $2}')"
+    echo "IP=$(systemctl status $UNIT | grep IP: | sed s/\ \ \ \ \ \ \ IP:\ //g)"
+    echo "LOG_TARGET=$(systemctl show -p StandardOutput $UNIT | sed s/StandardOutput=//g)"
+    echo
+    echo "MACHINE_HOSTNAME=$(hostname)"
+    echo "MACHINE_ID=$(cat /etc/machine-id)"
+    echo "MACHINE_PRETTY_HOSTNAME=$(echo $PRETTY_HOSTNAME)"
+    echo "MACHINE_LOCATION=$(echo $LOCATION)"
+}
+
+while getopts "lhj:" opt; do
+    case $opt in
+	l)
+	    if [[ ! -e /run/zebrakow ]]; then
+		echo "/run/zebrakow not found!" >&2
+		exit 1
+	    fi
+	    tree /run/zebrakow | head -n-1
+	    NUM=$(ls -l /run/zebrakow | grep ^d | wc -l)
+	    echo "$NUM job(s) listed"
+	    exit 0
+	    ;;
+	j)
+    	    JOB_ID=$OPTARG
+	    if [[ ! -e /run/zebrakow/$OPTARG ]]; then
+		echo "No jobs with this JOB_ID!" >&2;
+		exit 1
+	    fi
+	    echo
+	    UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT)
+	    echo "Unit $UNIT has $JOB_ID"
+	    echo
+	    shift $((OPTIND-1))
+	    case $1 in
+		-f) 
+		    journalctl -f -u $UNIT
+		    exit 0
+		    ;;
+		-m)
+		    metadata $JOB_ID
+		    exit 0
+		    ;;
+		-s)
+		    systemctl status $UNIT
+		    exit 0
+		    ;;
+		*)
+		    echo "Jobs take a single argument at once" >&2
+		    exit 1
+		    ;;
+	    esac
+	    ;;
+	:)
+	    echo "Missing option argument for -$OPTARG" >&2;
+	    exit 1
+	    ;;
+        *)
+	    echo "Unknown option: -$OPTARG" >&2;
+	    exit 1
+	    ;;
+    esac
+done
+
+shift $((OPTIND-1))
+systemd-run -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ '$INVOCATION_ID' -p Environment=HOME=/root -p ExecStop=/bin/rm\ -rf\ /run/zebrakow/'$INVOCAION_ID' $@
