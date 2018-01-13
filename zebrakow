@@ -160,7 +160,7 @@ while getopts "H:M:lthj:S:" opt; do
 done
 
 shift $((OPTIND-1))
-systemd-run $SYSTEMD_RUN_MACHINE $SLICE_UNIT $TERMINAL\
+systemd-run --no-block $SYSTEMD_RUN_MACHINE $SLICE_UNIT $TERMINAL\
 	    -p Type=notify -p NotifyAccess=all \
 	    -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID' \
 	    -p Environment=HOME=/root \

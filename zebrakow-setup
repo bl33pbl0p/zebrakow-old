@@ -20,6 +20,7 @@ elif [[ $1 == "--stop" ]]; then
 	echo "EXIT_STATUS $EXIT_STATUS"
     else
 	ln -sf "COMPLETED" $WORK/STATE
+    fi
 else
     exit 1
 fi
