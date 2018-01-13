@@ -1,6 +1,5 @@
 #!/bin/bash
 #set -x
-job=0
 
 function metadata() {
     if [[ -e /etc/machine-info ]]; then
@@ -14,21 +13,36 @@ function metadata() {
     echo "SLICE=$(systemctl show -p Slice $UNIT | sed s/Slice=//g )"
     echo "STATUS=$(systemctl status $UNIT | grep Status: | sed s/\ \ \ Status:\ //g)"
     echo "PID=$(systemctl status $UNIT | grep Main\ PID: | sed s/\ Main\ PID:\ //g | awk '{print $1}')"
-    echo
+    echo "--"
     echo "MEMORY=$(systemctl status $UNIT | grep Memory: | awk '{print $2}')"
     echo "TASKS=$(systemctl status $UNIT | grep Tasks: | sed s/\ \ \ \ Tasks:\ //g)"
     echo "CPU=$(systemctl status $UNIT | grep CPU: | awk '{print $2}')"
     echo "CGROUP=$(systemctl status $UNIT | grep CGroup: | awk '{print $2}')"
     echo "IP=$(systemctl status $UNIT | grep IP: | sed s/\ \ \ \ \ \ \ IP:\ //g)"
     echo "LOG_TARGET=$(systemctl show -p StandardOutput $UNIT | sed s/StandardOutput=//g)"
-    echo
+    echo "--"
     echo "MACHINE_HOSTNAME=$(hostname)"
     echo "MACHINE_ID=$(cat /etc/machine-id)"
     echo "MACHINE_PRETTY_HOSTNAME=$(echo $PRETTY_HOSTNAME)"
     echo "MACHINE_LOCATION=$(echo $LOCATION)"
 }
 
-while getopts "lhj:" opt; do
+function usage() {
+    printf "Usage: %s [OPTIONS] {COMMAND}\n" $0
+    printf "\nOptions:\n"
+    printf "\t-l: List running jobs\n"
+    printf "\t-h: Display this help\n"
+    printf "\t-j: Operate on job\n"
+    printf "\t\t-f: Tail the build log\n"
+    printf "\t\t-m: Display job metadata\n"
+    printf "\t\t-s: Display job status\n"
+    printf "\t\t-i: Inspect the unit file of the job\n"
+    printf "\t\t-k: Kill the job\n"
+    printf "\t-S: Run under this slice unit\n"
+    exit 0
+}
+
+while getopts "lhj:S:" opt; do
     case $opt in
 	l)
 	    if [[ ! -e /run/zebrakow ]]; then
@@ -39,6 +53,9 @@ while getopts "lhj:" opt; do
 	    NUM=$(ls -l /run/zebrakow | grep ^d | wc -l)
 	    echo "$NUM job(s) listed"
 	    exit 0
+	    ;;
+	h)
+	    usage
 	    ;;
 	j)
     	    JOB_ID=$OPTARG
@@ -54,7 +71,7 @@ while getopts "lhj:" opt; do
 	    case $1 in
 		-f) 
 		    journalctl -f -u $UNIT
-		    exit 0
+		    exit $?
 		    ;;
 		-m)
 		    metadata $JOB_ID
@@ -62,14 +79,26 @@ while getopts "lhj:" opt; do
 		    ;;
 		-s)
 		    systemctl status $UNIT
-		    exit 0
+		    exit $?
+		    ;;
+		-i)
+		    systemctl cat $UNIT
+		    exit $?
+		    ;;
+		-k)
+		    systemctl kill $UNIT
+		    exit $?
 		    ;;
 		*)
-		    echo "Jobs take a single argument at once" >&2
+		    echo "Unknown argument. Also, only a single argument may be passed." >&2
 		    exit 1
 		    ;;
 	    esac
 	    ;;
+	S)
+	    SLICE_UNIT=$OPTARG
+	    ;;
+	    
 	:)
 	    echo "Missing option argument for -$OPTARG" >&2;
 	    exit 1
@@ -82,4 +111,4 @@ while getopts "lhj:" opt; do
 done
 
 shift $((OPTIND-1))
-systemd-run -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ '$INVOCATION_ID' -p Environment=HOME=/root -p ExecStop=/bin/rm\ -rf\ /run/zebrakow/'$INVOCAION_ID' $@
+systemd-run -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID' -p Environment=HOME=/root -p ExecStopPost=/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' $@

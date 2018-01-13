@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Expects arguments in this order:
+# $1 = mode (--start or --stop)
+# $2 = JOB_ID
+
+export JOB_ID=$2
+export WORK=/run/zebrakow/$JOB_ID
+
+if [[ $1 == "--start" ]]; then
+    UNIT=$(busctl get-property org.freedesktop.systemd1 $(busctl call org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager GetUnitByInvocationID "ay" 16 $(perl -e 'my @nob = map sprintf("%d",hex($_)),  unpack "(A2)*", "$ENV{JOB_ID}"; print "" .join(" ",@nob,"\n");') | sed s/o\ //g | tr -d \") org.freedesktop.systemd1.Unit Id | sed s/s\ //g | tr -d \")
+    mkdir $WORK -p
+    ln -sf "$UNIT" $WORK/UNIT
+elif [[ $1 == "--stop" ]]; then
+    rm -rf $WORK || exit 1
+else
+    exit 1
+fi
+
+
