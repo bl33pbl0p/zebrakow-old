@@ -11,8 +11,15 @@ if [[ $1 == "--start" ]]; then
     UNIT=$(busctl get-property org.freedesktop.systemd1 $(busctl call org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager GetUnitByInvocationID "ay" 16 $(perl -e 'my @nob = map sprintf("%d",hex($_)),  unpack "(A2)*", "$ENV{JOB_ID}"; print "" .join(" ",@nob,"\n");') | sed s/o\ //g | tr -d \") org.freedesktop.systemd1.Unit Id | sed s/s\ //g | tr -d \")
     mkdir $WORK -p
     ln -sf "$UNIT" $WORK/UNIT
+    ln -sf "RUNNING" $WORK/STATE
 elif [[ $1 == "--stop" ]]; then
-    rm -rf $WORK || exit 1
+    if [[ $EXIT_CODE -ne "0" ]]; then
+	ln -sf "FAILURE" $WORK/STATE
+	echo "SERVICE_RESULT $SERVICE_RESULT"
+	echo "EXIT_CODE $EXIT_CODE"
+	echo "EXIT_STATUS $EXIT_STATUS"
+    else
+	ln -sf "COMPLETED" $WORK/STATE
 else
     exit 1
 fi
