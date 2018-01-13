@@ -32,7 +32,7 @@ function usage() {
     printf "\t-l: List running jobs\n"
     printf "\t-h: Display this help\n"
     printf "\t-j: Operate on the job\n"
-    printf "\t\t-u: View logs for the job"
+    printf "\t\t-u: View logs for the job\n"
     printf "\t\t-f: Tail the build log of a running job\n"
     printf "\t\t-m: Display metadata of a running job\n"
     printf "\t\t-s: Display status of a running job's unit\n"
