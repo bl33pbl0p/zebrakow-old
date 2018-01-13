@@ -42,6 +42,8 @@ function usage() {
     exit 0
 }
 
+SLICE_UNIT="--slice zebrakow.slice"
+
 while getopts "lhj:S:" opt; do
     case $opt in
 	l)
@@ -107,7 +109,7 @@ while getopts "lhj:S:" opt; do
 	    esac
 	    ;;
 	S)
-	    SLICE_UNIT=$OPTARG
+	    SLICE_UNIT="--slice $OPTARG"
 	    ;;
 	    
 	:)
@@ -122,4 +124,4 @@ while getopts "lhj:S:" opt; do
 done
 
 shift $((OPTIND-1))
-systemd-run -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID' -p Environment=HOME=/root -p ExecStopPost=/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' $@
+systemd-run $SLICE_UNIT -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID' -p Environment=HOME=/root -p ExecStopPost=/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' $@
