@@ -23,7 +23,6 @@ function machine() {
 	    export RUN_CONTAINER_REMOTE="machinectl --quiet -M $REMOTE_CONTAINER shell /bin/bash -c "
 	fi
     fi
-
 }
 
 function metadata() {
@@ -55,7 +54,7 @@ function metadata() {
 function usage() {
     printf "Usage: %s [OPTIONS] {COMMAND}\n" $0
     printf "\nOptions:\n"
-    printf "\t-H USER@HOST  \tOperate on remote host\n"
+    printf "\t-H USER@HOST:container Operate on remote host\n"
     printf "\t-M epsilon  \tOperate on local container\n"
     printf "\t-l\t\tList running jobs\n"
     printf "\t-t\t\tAttach to the terminal\n"
@@ -91,10 +90,7 @@ while getopts "H:M:lthj:S:" opt; do
 	    machine
 	    ;;
 	l)
-	    $RUN $RUN_CONTAINER_REMOTE if [[ ! -e /run/zebrakow ]]; then
-		echo "/run/zebrakow not found!" >&2
-		exit 1
-	    fi
+	    $RUN $RUN_CONTAINER_REMOTE "if [[ ! -e /run/zebrakow ]]; then echo '/run/zebrakow not found!' >&2 && exit 1; fi"
 	    $RUN $RUN_CONTAINER_REMOTE tree /run/zebrakow | head -n-1
 	    NUM=$($RUN ls -l /run/zebrakow | grep ^d | wc -l)
 	    echo
@@ -115,10 +111,7 @@ while getopts "H:M:lthj:S:" opt; do
 	    ;;
 	j)
     	    JOB_ID=$OPTARG
-	    $RUN $RUN_CONTAINER_REMOTE if [[ ! -e /run/zebrakow/$OPTARG ]]; then
-		echo "No jobs with this JOB_ID!" >&2;
-		exit 1;
-	    fi
+	    $RUN $RUN_CONTAINER_REMOTE "if [[ ! -e /run/zebrakow/$OPTARG ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi"
 	    echo
 	    UNIT=$($RUN $RUN_CONTAINER_REMOTE readlink /run/zebrakow/$JOB_ID/UNIT)
 	    echo "Unit $UNIT has JOB_ID $JOB_ID"
