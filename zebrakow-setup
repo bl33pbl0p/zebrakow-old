@@ -14,7 +14,7 @@ if [[ $1 == "--start" ]]; then
     ln -sf "RUNNING" $WORK/STATE
 elif [[ $1 == "--stop" ]]; then
     if [[ $EXIT_CODE -ne "0" ]]; then
-	ln -sf "FAILURE" $WORK/STATE
+	ln -sf "FAILED" $WORK/STATE
 	echo "SERVICE_RESULT $SERVICE_RESULT"
 	echo "EXIT_CODE $EXIT_CODE"
 	echo "EXIT_STATUS $EXIT_STATUS"
@@ -23,5 +23,3 @@ elif [[ $1 == "--stop" ]]; then
 else
     exit 1
 fi
-
-
