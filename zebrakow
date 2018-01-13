@@ -26,7 +26,7 @@ function machine() {
 
 function run() {
     if [[ $RUN == "" ]]; then RUN=/bin/bash\ -c; fi
-    $RUN $RUN_CONTAINER_REMOTE "'$@'"
+    $RUN $RUN_CONTAINER_REMOTE "$@"
 }
 
 function metadata() {
@@ -80,7 +80,7 @@ function usage() {
 while getopts "H:M:lthj:S:" opt; do
     case $opt in
 	H)
-	    if [[ "$CONTAINER" -ne "" ]]; then
+	    if [[ "$CONTAINER" != "" ]]; then
 		echo "Only one of -H -or -M may be specified at once" >&2
 		exit 1
 	    fi
@@ -88,7 +88,7 @@ while getopts "H:M:lthj:S:" opt; do
 	    machine
 	    ;;
 	M)
-	    if [[ "$REMOTE_HOST" -ne "" ]]; then
+	    if [[ "$REMOTE_HOST" != "" ]]; then
 		echo "Only one of -H -or -M may be specified at once" >&2
 		exit 1
 	    fi
@@ -96,8 +96,8 @@ while getopts "H:M:lthj:S:" opt; do
 	    machine
 	    ;;
 	l)
-	    run echo -n && \
-		if test ! -e /run/zebrakow; then echo '/run/zebrakow not found!' >&2 && exit 1; fi && \
+	    run /bin/true && \
+		if [[ ! -e /run/zebrakow ]]; then echo '/run/zebrakow not found!' >&2 && exit 1; fi && \
 		tree /run/zebrakow | head -n-1 && \
 		NUM=$(ls -l /run/zebrakow | grep ^d | wc -l) && \
 		   echo && echo "$NUM job(s) listed" && \
@@ -117,9 +117,8 @@ while getopts "H:M:lthj:S:" opt; do
 	    ;;
 	j)
     	    JOB_ID=$OPTARG
-	    run echo -n &&\
-		ls /run/zebrakow/$OPTARG && \
-		if [[ $? -ne "0" ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi && \
+	    run /bin/true && \
+		if [[ ! -e /run/zebrakow/$JOB_ID ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi && \
 		echo && UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT) && \
 		echo "Unit $UNIT has JOB_ID $JOB_ID" && echo; \
 		shift $((OPTIND-1));\
