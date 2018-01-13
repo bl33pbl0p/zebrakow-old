@@ -124,23 +124,23 @@ while getopts "H:M:lthj:S:" opt; do
 		shift $((OPTIND-1));\
 		case $1 in \
 		-u)\
-		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?\
+		    journalctl -u $UNIT && exit $?\
 		    ;;\
 		-f)\
-		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?\
+		    journalctl -u $UNIT && exit $?\
                     ;;\
 		-m)\
 		    metadata $JOB_ID\
 		    exit 0\
 		    ;;\
 		-s)\
-		    systemctl $SYSTEMD_RUN_MACHINE status $UNIT && exit $?\
+		    systemctl status $UNIT && exit $?\
 		    ;;\
 		-i)\
-		    systemctl $SYSTEMD_RUN_MACHINE cat $UNIT && exit $?\
+		    systemctl cat $UNIT && exit $?\
 		    ;;\
 		-k)\
-		    systemctl $SYSTEMD_RUN_MACHINE kill $UNIT && exit $?\
+		    systemctl kill $UNIT && exit $?\
 		    ;;\
 		*)\
 		    echo "Unknown argument. Also, only a single argument may be passed." >&2\
