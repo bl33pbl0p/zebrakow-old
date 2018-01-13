@@ -8,7 +8,6 @@ function metadata() {
     echo "JOB_ID=$1"
     echo "CMDLINE=$(cat /proc/$(systemctl status $UNIT | grep Main\ PID: | sed s/\ Main\ PID:\ //g | awk '{print $1}')/comm)"
     echo "TIME=Running `systemctl status $UNIT | grep Active | sed s/\ \ \ Active:\ active\ \(running\)\ //g`"
-    #echo "TIME=$(readlink /run/zebrakow/$JOB_ID/TIME)"
     echo "UNIT=$UNIT"
     echo "SLICE=$(systemctl show -p Slice $UNIT | sed s/Slice=//g )"
     echo "STATUS=$(systemctl status $UNIT | grep Status: | sed s/\ \ \ Status:\ //g)"
@@ -32,11 +31,12 @@ function usage() {
     printf "\nOptions:\n"
     printf "\t-l: List running jobs\n"
     printf "\t-h: Display this help\n"
-    printf "\t-j: Operate on job\n"
-    printf "\t\t-f: Tail the build log\n"
-    printf "\t\t-m: Display job metadata\n"
-    printf "\t\t-s: Display job status\n"
-    printf "\t\t-i: Inspect the unit file of the job\n"
+    printf "\t-j: Operate on the job\n"
+    printf "\t\t-u: View logs for the job"
+    printf "\t\t-f: Tail the build log of a running job\n"
+    printf "\t\t-m: Display metadata of a running job\n"
+    printf "\t\t-s: Display status of a running job's unit\n"
+    printf "\t\t-i: Inspect the unit file of a running job\n"
     printf "\t\t-k: Kill the job\n"
     printf "\t-S: Run under this slice unit\n"
     exit 0
@@ -51,7 +51,14 @@ while getopts "lhj:S:" opt; do
 	    fi
 	    tree /run/zebrakow | head -n-1
 	    NUM=$(ls -l /run/zebrakow | grep ^d | wc -l)
+	    echo
 	    echo "$NUM job(s) listed"
+	    RUNNING=$(tree /run/zeebrakow | grep RUNNING | wc -l)
+	    COMPLETED=$(tree /run/zeebrakow | grep COMPLETED | wc -l)
+	    FAILED=$(tree /run/zeebrakow | grep FAILED | wc -l)
+	    echo "└── $RUNNING job(s) running"
+	    echo "└── $COMPLETED job(s) completed"
+	    echo "└── $FAILED job(s) failed"
 	    exit 0
 	    ;;
 	h)
@@ -69,6 +76,10 @@ while getopts "lhj:S:" opt; do
 	    echo
 	    shift $((OPTIND-1))
 	    case $1 in
+		-u)
+		    journalctl -u $UNIT
+		    exit $?
+		    ;;
 		-f) 
 		    journalctl -f -u $UNIT
 		    exit $?
