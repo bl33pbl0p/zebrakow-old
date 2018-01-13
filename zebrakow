@@ -101,9 +101,9 @@ while getopts "H:M:lthj:S:" opt; do
 		tree /run/zebrakow | head -n-1 && \
 		NUM=$(ls -l /run/zebrakow | grep ^d | wc -l) && \
 		   echo && echo "$NUM job(s) listed" && \
-		   RUNNING=$(tree /run/zeebrakow | grep RUNNING | wc -l) && \
-		   COMPLETED=$(tree /run/zeebrakow | grep COMPLETED | wc -l) && \
-		   FAILED=$(tree /run/zeebrakow | grep FAILED | wc -l) && \
+		   RUNNING=$(tree /run/zebrakow | grep RUNNING | wc -l) && \
+		   COMPLETED=$(tree /run/zebrakow | grep COMPLETED | wc -l) && \
+		   FAILED=$(tree /run/zebrakow | grep FAILED | wc -l) && \
 		   echo "└── $RUNNING job(s) running" && \
 		   echo "└── $COMPLETED job(s) completed" && \
 		   echo "└── $FAILED job(s) failed"
