@@ -5,17 +5,23 @@ export REMOTE_HOST=""
 export CONTAINER=""
 export RUN=""
 export SYSTEMD_RUN_MACHINE=""
-TERMINAL=""
+export TERMINAL=""
+
+export RUN_CONTAINER_REMOTE=""
 
 function machine() {
     if [[ $REMOTE_HOST == "" ]]; then
 	MACHINE="$CONTAINER"
-	export RUN="machinectl --quiet $MACHINE shell /bin/bash -c $@"
+	export RUN="machinectl --quiet $MACHINE shell /bin/bash -c "
 	export SYSTEMD_RUN_MACHINE="$CONTAINER"
     elif [[ $CONTAINER == "" ]]; then
-	MACHINE="$REMOTE_HOST"
+	MACHINE="$(echo $REMOTE_HOST | cut -f1 -d:)"
 	export SYSTEMD_RUN_MACHINE="-H $REMOTE_HOST"
-	export RUN="ssh $REMOTE_HOST"
+	export RUN="ssh $MACHINE"
+	REMOTE_CONTAINER="$(echo $REMOTE_HOST | cut -f2- -d:)"
+	if [[ $REMOTE_CONTAINER -ne "" ]]; then
+	    export RUN_CONTAINER_REMOTE="machinectl --quiet -M $REMOTE_CONTAINER shell /bin/bash -c "
+	fi
     fi
 
 }
@@ -85,17 +91,17 @@ while getopts "H:M:lthj:S:" opt; do
 	    machine
 	    ;;
 	l)
-	    $RUN if [[ ! -e /run/zebrakow ]]; then
+	    $RUN $RUN_CONTAINER_REMOTE if [[ ! -e /run/zebrakow ]]; then
 		echo "/run/zebrakow not found!" >&2
 		exit 1
 	    fi
-	    $RUN tree /run/zebrakow | head -n-1
+	    $RUN $RUN_CONTAINER_REMOTE tree /run/zebrakow | head -n-1
 	    NUM=$($RUN ls -l /run/zebrakow | grep ^d | wc -l)
 	    echo
 	    echo "$NUM job(s) listed"
-	    RUNNING=$($RUN tree /run/zeebrakow | grep RUNNING | wc -l)
-	    COMPLETED=$($RUN tree /run/zeebrakow | grep COMPLETED | wc -l)
-	    FAILED=$($RUN tree /run/zeebrakow | grep FAILED | wc -l)
+	    RUNNING=$($RUN $RUN_CONATINER_REMOTE tree /run/zeebrakow | grep RUNNING | wc -l)
+	    COMPLETED=$($RUN $RUN_CONTAINER_REMOTE tree /run/zeebrakow | grep COMPLETED | wc -l)
+	    FAILED=$($RUN $RUN_CONTAINER_REMOTE tree /run/zeebrakow | grep FAILED | wc -l)
 	    echo "└── $RUNNING job(s) running"
 	    echo "└── $COMPLETED job(s) completed"
 	    echo "└── $FAILED job(s) failed"
@@ -109,34 +115,34 @@ while getopts "H:M:lthj:S:" opt; do
 	    ;;
 	j)
     	    JOB_ID=$OPTARG
-	    $RUN if [[ ! -e /run/zebrakow/$OPTARG ]]; then
+	    $RUN $RUN_CONTAINER_REMOTE if [[ ! -e /run/zebrakow/$OPTARG ]]; then
 		echo "No jobs with this JOB_ID!" >&2;
 		exit 1;
 	    fi
 	    echo
-	    UNIT=$($RUN readlink /run/zebrakow/$JOB_ID/UNIT)
+	    UNIT=$($RUN $RUN_CONTAINER_REMOTE readlink /run/zebrakow/$JOB_ID/UNIT)
 	    echo "Unit $UNIT has JOB_ID $JOB_ID"
 	    echo
 	    shift $((OPTIND-1))
 	    case $1 in
 		-u)
-		    $RUN journalctl -u $UNIT && exit $?
+		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?
 		    ;;
 		-f) 
-		    $RUN journalctl -f -u $UNIT && exit $?
+		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?
 		    ;;
 		-m)
 		    $RUN metadata $JOB_ID
 		    exit 0
 		    ;;
 		-s)
-		    $RUN systemctl status $UNIT && exit $?
+		    systemctl $SYSTEMD_RUN_MACHINE status $UNIT && exit $?
 		    ;;
 		-i)
-		    $RUN systemctl cat $UNIT && exit $?
+		    systemctl $SYSTEMD_RUN_MACHINE cat $UNIT && exit $?
 		    ;;
 		-k)
-		    $RUN systemctl kill $UNIT && exit $?
+		    systemctl $SYSTEMD_RUN_MACHINE kill $UNIT && exit $?
 		    ;;
 		*)
 		    echo "Unknown argument. Also, only a single argument may be passed." >&2
