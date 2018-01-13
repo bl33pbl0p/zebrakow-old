@@ -5,16 +5,19 @@ export REMOTE_HOST=""
 export CONTAINER=""
 export RUN=""
 export SYSTEMD_RUN_MACHINE=""
+TERMINAL=""
 
 function machine() {
     if [[ $REMOTE_HOST == "" ]]; then
 	MACHINE="$CONTAINER"
+	export RUN="machinectl --quiet $MACHINE shell /bin/bash -c $@"
 	export SYSTEMD_RUN_MACHINE="$CONTAINER"
     elif [[ $CONTAINER == "" ]]; then
 	MACHINE="$REMOTE_HOST"
-	export SYSTEMD_RUN_MACHINE="$REMOTE_HOST"
+	export SYSTEMD_RUN_MACHINE="-H $REMOTE_HOST"
+	export RUN="ssh $REMOTE_HOST"
     fi
-    export RUN="machinectl --quiet $MACHINE shell /bin/bash -c $@"
+
 }
 
 function metadata() {
@@ -49,6 +52,7 @@ function usage() {
     printf "\t-H USER@HOST  \tOperate on remote host\n"
     printf "\t-M epsilon  \tOperate on local container\n"
     printf "\t-l\t\tList running jobs\n"
+    printf "\t-t\t\tAttach to the terminal\n"
     printf "\t-h\t\tDisplay this help\n"
     printf "\t-S foobar.slice Run under this slice unit\n"
     printf "\t-j {job} OPT\tOperate on the job\n"
@@ -62,14 +66,14 @@ function usage() {
     exit 0
 }
 
-while getopts "H:M:lhj:S:" opt; do
+while getopts "H:M:lthj:S:" opt; do
     case $opt in
 	H)
 	    if [[ $CONTAINER -ne "" ]]; then
 		echo "Only one of -H -or -M may be specified at once" >&2
 		exit 1
 	    fi
-	    export REMOTE_HOST="-H $OPTARG"
+	    export REMOTE_HOST="$OPTARG"
 	    machine
 	    ;;
 	M)
@@ -81,7 +85,7 @@ while getopts "H:M:lhj:S:" opt; do
 	    machine
 	    ;;
 	l)
-	    if [[ ! -e /run/zebrakow ]]; then
+	    $RUN if [[ ! -e /run/zebrakow ]]; then
 		echo "/run/zebrakow not found!" >&2
 		exit 1
 	    fi
@@ -97,14 +101,17 @@ while getopts "H:M:lhj:S:" opt; do
 	    echo "└── $FAILED job(s) failed"
 	    exit 0
 	    ;;
+	t)
+	    TERMINAL="--pty"
+	    ;;
 	h)
 	    usage
 	    ;;
 	j)
     	    JOB_ID=$OPTARG
-	    if [[ ! -e /run/zebrakow/$OPTARG ]]; then
+	    $RUN if [[ ! -e /run/zebrakow/$OPTARG ]]; then
 		echo "No jobs with this JOB_ID!" >&2;
-		exit 1
+		exit 1;
 	    fi
 	    echo
 	    UNIT=$($RUN readlink /run/zebrakow/$JOB_ID/UNIT)
@@ -153,7 +160,7 @@ while getopts "H:M:lhj:S:" opt; do
 done
 
 shift $((OPTIND-1))
-systemd-run $SYSTEMD_RUN_MACHINE $SLICE_UNIT \
+systemd-run $SYSTEMD_RUN_MACHINE $SLICE_UNIT $TERMINAL\
 	    -p Type=notify -p NotifyAccess=all \
 	    -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID' \
 	    -p Environment=HOME=/root \
