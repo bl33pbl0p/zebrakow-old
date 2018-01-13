@@ -46,18 +46,19 @@ function metadata() {
 function usage() {
     printf "Usage: %s [OPTIONS] {COMMAND}\n" $0
     printf "\nOptions:\n"
-    printf "\t-H: Operate on remote host"
-    printf "\t-M: Operate on local container"
-    printf "\t-l: List running jobs\n"
-    printf "\t-h: Display this help\n"
-    printf "\t-j: Operate on the job\n"
-    printf "\t\t-u: View logs for the job\n"
-    printf "\t\t-f: Tail the build log of a running job\n"
-    printf "\t\t-m: Display metadata of a running job\n"
-    printf "\t\t-s: Display status of a running job's unit\n"
-    printf "\t\t-i: Inspect the unit file of a running job\n"
-    printf "\t\t-k: Kill the job\n"
-    printf "\t-S: Run under this slice unit\n"
+    printf "\t-H USER@HOST  \tOperate on remote host\n"
+    printf "\t-M epsilon  \tOperate on local container\n"
+    printf "\t-l\t\tList running jobs\n"
+    printf "\t-h\t\tDisplay this help\n"
+    printf "\t-S foobar.slice Run under this slice unit\n"
+    printf "\t-j {job} OPT\tOperate on the job\n"
+    printf "\n\tSuboptions for -j:\n"
+    printf "\t-u\tView logs for the job\n"
+    printf "\t-f\tFollow the build log of a running job\n"
+    printf "\t-m\tDisplay metadata of a running job\n"
+    printf "\t-s\tDisplay status of a running job's unit\n"
+    printf "\t-i\tInspect the unit file of a running job\n"
+    printf "\t-k\tKill the job\n"
     exit 0
 }
 
