@@ -18,11 +18,15 @@ function machine() {
 	MACHINE="$(echo $REMOTE_HOST | cut -f1 -d:)"
 	export SYSTEMD_RUN_MACHINE="-H $REMOTE_HOST"
 	export RUN="ssh $MACHINE"
-	REMOTE_CONTAINER="$(echo $REMOTE_HOST | cut -f2- -d:)"
-	if [[ $REMOTE_CONTAINER -ne "" ]]; then
-	    export RUN_CONTAINER_REMOTE="machinectl --quiet -M $REMOTE_CONTAINER shell /bin/bash -c "
-	fi
+	export REMOTE_CONTAINER="$(echo $REMOTE_HOST | cut -f2- -d:)"
+	if [[ "$REMOTE_HOST" != "$REMOTE_CONTAINER" ]]; then
+	    RUN_CONTAINER_REMOTE="machinectl --quiet -M $REMOTE_CONTAINER shell /bin/bash -c "; fi
     fi
+}
+
+function run() {
+    if [[ $RUN == "" ]]; then RUN=/bin/bash\ -c; fi
+    $RUN $RUN_CONTAINER_REMOTE "'$@'"
 }
 
 function metadata() {
@@ -54,7 +58,7 @@ function metadata() {
 function usage() {
     printf "Usage: %s [OPTIONS] {COMMAND}\n" $0
     printf "\nOptions:\n"
-    printf "\t-H USER@HOST:container Operate on remote host\n"
+    printf "\t-H USER@HOST \tOperate on remote host\n"
     printf "\t-M epsilon  \tOperate on local container\n"
     printf "\t-l\t\tList running jobs\n"
     printf "\t-t\t\tAttach to the terminal\n"
@@ -68,13 +72,15 @@ function usage() {
     printf "\t-s\tDisplay status of a running job's unit\n"
     printf "\t-i\tInspect the unit file of a running job\n"
     printf "\t-k\tKill the job\n"
+    printf "\nExamples:\n"
+    printf "$ %s -H root@remote.host:container -j zxc887as676a9s8d79as7d21389as2913 -k\n" $0
     exit 0
 }
 
 while getopts "H:M:lthj:S:" opt; do
     case $opt in
 	H)
-	    if [[ $CONTAINER -ne "" ]]; then
+	    if [[ "$CONTAINER" -ne "" ]]; then
 		echo "Only one of -H -or -M may be specified at once" >&2
 		exit 1
 	    fi
@@ -82,7 +88,7 @@ while getopts "H:M:lthj:S:" opt; do
 	    machine
 	    ;;
 	M)
-	    if [[ $REMOTE_HOST -ne "" ]]; then
+	    if [[ "$REMOTE_HOST" -ne "" ]]; then
 		echo "Only one of -H -or -M may be specified at once" >&2
 		exit 1
 	    fi
@@ -90,17 +96,17 @@ while getopts "H:M:lthj:S:" opt; do
 	    machine
 	    ;;
 	l)
-	    $RUN $RUN_CONTAINER_REMOTE "if [[ ! -e /run/zebrakow ]]; then echo '/run/zebrakow not found!' >&2 && exit 1; fi"
-	    $RUN $RUN_CONTAINER_REMOTE tree /run/zebrakow | head -n-1
-	    NUM=$($RUN ls -l /run/zebrakow | grep ^d | wc -l)
-	    echo
-	    echo "$NUM job(s) listed"
-	    RUNNING=$($RUN $RUN_CONATINER_REMOTE tree /run/zeebrakow | grep RUNNING | wc -l)
-	    COMPLETED=$($RUN $RUN_CONTAINER_REMOTE tree /run/zeebrakow | grep COMPLETED | wc -l)
-	    FAILED=$($RUN $RUN_CONTAINER_REMOTE tree /run/zeebrakow | grep FAILED | wc -l)
-	    echo "└── $RUNNING job(s) running"
-	    echo "└── $COMPLETED job(s) completed"
-	    echo "└── $FAILED job(s) failed"
+	    run echo -n && \
+		if test ! -e /run/zebrakow; then echo '/run/zebrakow not found!' >&2 && exit 1; fi && \
+		tree /run/zebrakow | head -n-1 && \
+		NUM=$(ls -l /run/zebrakow | grep ^d | wc -l) && \
+		   echo && echo "$NUM job(s) listed" && \
+		   RUNNING=$(tree /run/zeebrakow | grep RUNNING | wc -l) && \
+		   COMPLETED=$(tree /run/zeebrakow | grep COMPLETED | wc -l) && \
+		   FAILED=$(tree /run/zeebrakow | grep FAILED | wc -l) && \
+		   echo "└── $RUNNING job(s) running" && \
+		   echo "└── $COMPLETED job(s) completed" && \
+		   echo "└── $FAILED job(s) failed"
 	    exit 0
 	    ;;
 	t)
@@ -111,36 +117,36 @@ while getopts "H:M:lthj:S:" opt; do
 	    ;;
 	j)
     	    JOB_ID=$OPTARG
-	    $RUN $RUN_CONTAINER_REMOTE "if [[ ! -e /run/zebrakow/$OPTARG ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi"
-	    echo
-	    UNIT=$($RUN $RUN_CONTAINER_REMOTE readlink /run/zebrakow/$JOB_ID/UNIT)
-	    echo "Unit $UNIT has JOB_ID $JOB_ID"
-	    echo
-	    shift $((OPTIND-1))
-	    case $1 in
-		-u)
-		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?
-		    ;;
-		-f) 
-		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?
-		    ;;
-		-m)
-		    $RUN metadata $JOB_ID
-		    exit 0
-		    ;;
-		-s)
-		    systemctl $SYSTEMD_RUN_MACHINE status $UNIT && exit $?
-		    ;;
-		-i)
-		    systemctl $SYSTEMD_RUN_MACHINE cat $UNIT && exit $?
-		    ;;
-		-k)
-		    systemctl $SYSTEMD_RUN_MACHINE kill $UNIT && exit $?
-		    ;;
-		*)
-		    echo "Unknown argument. Also, only a single argument may be passed." >&2
-		    exit 1
-		    ;;
+	    run echo -n &&\
+		ls /run/zebrakow/$OPTARG && \
+		if [[ $? -ne "0" ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi && \
+		echo && UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT) && \
+		echo "Unit $UNIT has JOB_ID $JOB_ID" && echo; \
+		shift $((OPTIND-1));\
+		case $1 in \
+		-u)\
+		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?\
+		    ;;\
+		-f)\
+		    journalctl $SYSTEMD_RUN_MACHINE -u $UNIT && exit $?\
+                    ;;\
+		-m)\
+		    metadata $JOB_ID\
+		    exit 0\
+		    ;;\
+		-s)\
+		    systemctl $SYSTEMD_RUN_MACHINE status $UNIT && exit $?\
+		    ;;\
+		-i)\
+		    systemctl $SYSTEMD_RUN_MACHINE cat $UNIT && exit $?\
+		    ;;\
+		-k)\
+		    systemctl $SYSTEMD_RUN_MACHINE kill $UNIT && exit $?\
+		    ;;\
+		*)\
+		    echo "Unknown argument. Also, only a single argument may be passed." >&2\
+		    exit 1\
+		    ;;\
 	    esac
 	    ;;
 	S)
@@ -149,10 +155,6 @@ while getopts "H:M:lthj:S:" opt; do
 	    
 	:)
 	    echo "Missing option argument for -$OPTARG" >&2;
-	    exit 1
-	    ;;
-        *)
-	    echo "Unknown option: -$OPTARG" >&2;
 	    exit 1
 	    ;;
     esac
