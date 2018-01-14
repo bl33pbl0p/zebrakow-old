@@ -65,8 +65,8 @@ function usage() {
     printf "\t-t\t\tAttach to the terminal\n"
     printf "\t-h\t\tDisplay this help\n"
     printf "\t-S foobar.slice Run under this slice unit\n"
-    printf "\t-j {job} OPT\tOperate on the job (by NAME or by JOB_ID)\n"
     printf "\t-N foobar   \tSet a name for the job. (DD-MM-YYYY-HH:MM:SS by default)\n"
+    printf "\t-j {job} OPT\tOperate on the job (by NAME or by JOB_ID)\n"
     printf "\n\tSuboptions for -j:\n"
     printf "\t-u\tView logs for the job\n"
     printf "\t-f\tFollow the build log of a running job\n"
@@ -81,7 +81,7 @@ function usage() {
 
 #function state
 
-while getopts "H:M:lthj:N:S:" opt; do
+while getopts "H:M:lthN:j:S:" opt; do
     case $opt in
 	H)
 	    if [[ "$CONTAINER" != "" ]]; then
@@ -117,7 +117,14 @@ while getopts "H:M:lthj:N:S:" opt; do
 	    TERMINAL="--pty"
 	    ;;
 	h)
-	    usage
+	    usage;;
+	N)
+	    if [[ ${#OPTARG} -le 30 && ${#OPTARG} -gt 0 ]]; then
+		NAME=$OPTARG
+	    else
+		echo "Invalid name sepc. Names should be > 0 and <= 30 chars." >&2
+		exit 1
+	    fi
 	    ;;
 	j)
 	    if [[ ${#OPTARG} == 32 ]]; then
@@ -162,14 +169,6 @@ while getopts "H:M:lthj:N:S:" opt; do
 			    echo && usage && exit 1 ;;\
 		esac
 	    
-	    ;;
-	N)
-	    if [[ ${#OPTARG} -le 30 && ${#OPTARG} -gt 0 ]]; then
-		NAME=$OPTARG
-	    else
-		echo "Invalid name sepc. Names should be > 0 and <= 30 chars." >&2
-		exit 1
-	    fi
 	    ;;
 		
 	S)
