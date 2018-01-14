@@ -157,7 +157,7 @@ while getopts "H:M:lthN:j:S:P:" opt; do
 	    while read -r fname; do \
 		if [[ "$(readlink "$fname")" == "$NAME" ]]; then \
 		    export UNIT=$(readlink "$(echo "$fname" | sed s/NAME/UNIT/g)") && \
-			export JOB_ID="$(systemctl show -p InvocationID $UNIT | sed s/InvocationID=//g)";\
+			export JOB_ID="$(basename "$(echo "$fname" | sed s/NAME//g)")";\
 		    break;\
 		fi \
 	    done < <(find /run/zebrakow -name "*NAME*");\
@@ -168,30 +168,30 @@ while getopts "H:M:lthN:j:S:P:" opt; do
 		    -u)\
 			journalctl -u $UNIT; exit $?;;\
 		    -f)\
-			journalctl -u $UNIT; exit $?;;\
+			journalctl -f -u $UNIT; exit $?;;\
 		    -m)\
-			if [[ state -eq 1 ]]; then \
+			if state $JOB_ID; then \
 			    metadata $JOB_ID && exit 0; \
 			else \
 			    echo "Cannot fetch metadata of a non-running job." >&2 && exit 1; \
 			fi \
 			;;\
 		    -s)\
-			if [[ state -eq 1 ]]; then \
+			if state $JOB_ID; then \
 			    systemctl status $UNIT; exit $?; \
 			else \
 			    echo "Cannot show run status of a non-running job." >&2 && exit 1; \
 			fi \
 			;;\
 		    -i)\
-			if [[ state -eq 1 ]]; then \
+			if state $JOB_ID; then \
 			    systemctl cat $UNIT; exit $?; \
 			else \
 			    echo "Cannot show contents of a non-running job." >&2 && exit 1; \
 			fi \
 			;;\
 		    -k)\
-			if [[ state -eq 1 ]]; then \
+			if state $JOB_ID; then \
 			    systemctl kill $UNIT; exit $?; \
 			else \
 			    echo "Cannot kill a non-running job." >&2 && exit 1; \
