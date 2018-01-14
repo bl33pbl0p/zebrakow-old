@@ -119,9 +119,9 @@ while getopts "H:M:lthcN:j:S:P:" opt; do
 		tree /run/zebrakow | head -n-1 && \
 		NUM=$(ls -l /run/zebrakow | grep -c ^d) && \
 		   echo && echo "$NUM job(s) listed" && \
-		   RUNNING=$(tree /run/zebrakow | grep -c RUNNING) && \
-		   COMPLETED=$(tree /run/zebrakow | grep -c COMPLETED) && \
-		   FAILED=$(tree /run/zebrakow | grep -c FAILED) && \
+		   RUNNING=$(tree /run/zebrakow | grep RUNNING | wc -l) && \
+		   COMPLETED=$(tree /run/zebrakow | grep COMPLETED | wc -l) && \
+		   FAILED=$(tree /run/zebrakow | grep FAILED | wc -l) && \
 		   echo "└── $RUNNING job(s) running" && \
 		   echo "└── $COMPLETED job(s) completed" && \
 		   echo "└── $FAILED job(s) failed"
@@ -138,8 +138,13 @@ while getopts "H:M:lthcN:j:S:P:" opt; do
 	    exit $?
 	    ;;
 	N)
+	    echo "Checking name..."
+	    run /bin/true && \
+		if grep \\b$OPTARG\\b < <(ls -lR /run/zebrakow/) >/dev/null; then \
+		    echo "A job with this name already exists" && exit 1;fi
 	    if [[ ${#OPTARG} -le 30 && ${#OPTARG} -gt 0 ]]; then
 		NAME=$OPTARG
+		echo "OK!"
 	    else
 		echo "Invalid name sepc. Names should be > 0 and <= 30 chars." >&2
 		exit 1
@@ -228,9 +233,9 @@ while getopts "H:M:lthcN:j:S:P:" opt; do
     esac
 done
 
-#	    -p Type=notify -p NotifyAccess=all \
 shift $((OPTIND-1))
 systemd-run $NO_BLOCK $SYSTEMD_RUN_MACHINE $SLICE_UNIT $TERMINAL \
+	    -p Type=notify -p NotifyAccess=all \
 	    "${options[@]}" \
 	    -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID'\ '$NAME' \
 	    -p Environment=HOME=/root -p Environment=NAME=$NAME\
