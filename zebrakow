@@ -8,7 +8,7 @@ export SYSTEMD_RUN_MACHINE=""
 export TERMINAL=""
 export NAME="$(date +%d-%m-%Y-%H:%M:%S)"
 options=()
-
+export NO_BLOCK="--no-block"
 export RUN_CONTAINER_REMOTE=""
 
 function machine() {
@@ -65,6 +65,7 @@ function usage() {
     printf "\t-l\t\tList running jobs\n"
     printf "\t-t\t\tAttach to the terminal\n"
     printf "\t-h\t\tDisplay this help\n"
+    printf "\t-c\t\tClean all jobs"
     printf "\t-S foobar.slice Run under this slice unit\n"
     printf "\t-P foobar       Run under this profile\n" 
     printf "\t-N foobar   \tSet a name for the job. (DD-MM-YYYY-HH:MM:SS by default)\n"
@@ -84,17 +85,17 @@ function usage() {
 function state() {
     STATE=$(readlink /run/zebrakow/$1/STATE)
     if [[ "$STATE" == "RUNNING" ]]; then
-	return 1;
+	return 0;
     elif [[ "$STATE" == "COMPLETED" ]]; then
 	return 2;
     elif [[ "$STATE" == "FAILED" ]]; then
 	return 3;
     else
-	return 0;
+	return 1;
     fi
 }
 
-while getopts "H:M:lthN:j:S:P:" opt; do
+while getopts "H:M:lthcN:j:S:P:" opt; do
     case $opt in
 	H)
 	    if [[ "$CONTAINER" != "" ]]; then
@@ -128,9 +129,14 @@ while getopts "H:M:lthN:j:S:P:" opt; do
 	    ;;
 	t)
 	    TERMINAL="--pty"
+	    unset $NO_BLOCK
 	    ;;
 	h)
 	    usage;;
+	c)
+	    run rm -rf /run/zebrakow
+	    exit $?
+	    ;;
 	N)
 	    if [[ ${#OPTARG} -le 30 && ${#OPTARG} -gt 0 ]]; then
 		NAME=$OPTARG
@@ -205,7 +211,7 @@ while getopts "H:M:lthN:j:S:P:" opt; do
 	    ;;
 		
 	S)
-	    SLICE_UNIT="--slice $OPTARG"
+	    SLICE_UNIT="--slice "$OPTARG""
 	    ;;
 	P)
 	    run /bin/true && \
@@ -222,11 +228,11 @@ while getopts "H:M:lthN:j:S:P:" opt; do
     esac
 done
 
+#	    -p Type=notify -p NotifyAccess=all \
 shift $((OPTIND-1))
-systemd-run --no-block $SYSTEMD_RUN_MACHINE "$SLICE_UNIT" $TERMINAL\
-	    -p Type=notify -p NotifyAccess=all \
+systemd-run $NO_BLOCK $SYSTEMD_RUN_MACHINE $SLICE_UNIT $TERMINAL \
 	    "${options[@]}" \
-	    -p ExecStartPre/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID'\ '$NAME' \
+	    -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID'\ '$NAME' \
 	    -p Environment=HOME=/root -p Environment=NAME=$NAME\
-	    -p ExecStopPost/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' \
+	    -p ExecStopPost=/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' \
 	    "$@"
