@@ -168,28 +168,28 @@ while getopts "H:M:lthN:j:S:" opt; do
 			journalctl -u $UNIT; exit $?;;\
 		    -m)\
 			if [[ state -eq 1 ]]; then \
-			    metadata $JOB_ID && exit 0\
+			    metadata $JOB_ID && exit 0; \
 			else \
 			    echo "Cannot fetch metadata of a non-running job." >&2 && exit 1; \
 			fi \
-			;;
+			;;\
 		    -s)\
 			if [[ state -eq 1 ]]; then \
-			    systemctl status $UNIT; exit $?\
+			    systemctl status $UNIT; exit $?; \
 			else \
 			    echo "Cannot show run status of a non-running job." >&2 && exit 1; \
 			fi \
 			;;\
 		    -i)\
 			if [[ state -eq 1 ]]; then \
-			    systemctl cat $UNIT; exit $?\
+			    systemctl cat $UNIT; exit $?; \
 			else \
 			    echo "Cannot show contents of a non-running job." >&2 && exit 1; \
 			fi \
 			;;\
 		    -k)\
 			if [[ state -eq 1 ]]; then \
-			    systemctl kill $UNIT; exit $?\
+			    systemctl kill $UNIT; exit $?; \
 			else \
 			    echo "Cannot kill a non-running job." >&2 && exit 1; \
 			fi \
