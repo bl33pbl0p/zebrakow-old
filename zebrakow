@@ -6,6 +6,7 @@ export CONTAINER=""
 export RUN=""
 export SYSTEMD_RUN_MACHINE=""
 export TERMINAL=""
+export NAME="$(date +%d-%m-%Y-%H:%M:%S)"
 
 export RUN_CONTAINER_REMOTE=""
 
@@ -64,7 +65,8 @@ function usage() {
     printf "\t-t\t\tAttach to the terminal\n"
     printf "\t-h\t\tDisplay this help\n"
     printf "\t-S foobar.slice Run under this slice unit\n"
-    printf "\t-j {job} OPT\tOperate on the job\n"
+    printf "\t-j {job} OPT\tOperate on the job (by NAME or by JOB_ID)\n"
+    printf "\t-N foobar   \tSet a name for the job. (DD-MM-YYYY-HH:MM:SS by default)\n"
     printf "\n\tSuboptions for -j:\n"
     printf "\t-u\tView logs for the job\n"
     printf "\t-f\tFollow the build log of a running job\n"
@@ -77,7 +79,9 @@ function usage() {
     exit 0
 }
 
-while getopts "H:M:lthj:S:" opt; do
+#function state
+
+while getopts "H:M:lthj:N:S:" opt; do
     case $opt in
 	H)
 	    if [[ "$CONTAINER" != "" ]]; then
@@ -116,38 +120,58 @@ while getopts "H:M:lthj:S:" opt; do
 	    usage
 	    ;;
 	j)
-    	    JOB_ID=$OPTARG
+	    if [[ ${#OPTARG} == 32 ]]; then
+		JOB_ID=$OPTARG
+		TYPE=1
+	    elif [[ ${#OPTARG} -le 30 ]]; then
+		NAME=$OPTARG
+	    else
+		echo "Invalid spec for NAME or JOB_ID passed. Please pass one of -j or -N, and names less than 30 characters." >&2
+		exit 1
+	    fi
 	    run /bin/true && \
-		if [[ ! -e /run/zebrakow/$JOB_ID ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi && \
-		echo && UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT) && \
-		echo "Unit $UNIT has JOB_ID $JOB_ID" && echo; \
-		shift $((OPTIND-1));\
+		if [[ $TYPE -eq 1 ]]; then\
+		       if [[ ! -e /run/zebrakow/$JOB_ID ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi && \
+			   echo && export UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT); \
+		else \
+		    find /run/zebrakow -name *NAME* | while read fname; do \
+			if [[ $(readlink $fname) == "$NAME" ]]; then\
+			       export UNIT=$(readlink `echo $fname | sed s/NAME/UNIT/g`) && \
+				   export JOB_ID="$(systemctl show -p InvocationID $UNIT | sed s/InvocationID=//g)";\
+			fi \
+	    done \
+		fi; \
+	    echo "Unit $UNIT has JOB_ID $JOB_ID" && echo && \
+		shift $((OPTIND-1)) && \
 		case $1 in \
-		-u)\
-		    journalctl -u $UNIT && exit $?\
-		    ;;\
-		-f)\
-		    journalctl -u $UNIT && exit $?\
-                    ;;\
-		-m)\
-		    metadata $JOB_ID\
-		    exit 0\
-		    ;;\
-		-s)\
-		    systemctl status $UNIT && exit $?\
-		    ;;\
-		-i)\
-		    systemctl cat $UNIT && exit $?\
-		    ;;\
-		-k)\
-		    systemctl kill $UNIT && exit $?\
-		    ;;\
-		*)\
-		    echo "Unknown argument. Also, only a single argument may be passed." >&2\
-		    exit 1\
-		    ;;\
-	    esac
+		    -u)\
+			journalctl -u $UNIT; exit $?;;\
+		    -f)\
+			journalctl -u $UNIT; exit $?;;\
+		    -m)\
+			metadata $JOB_ID &&\
+			    exit 0;;\
+		    -s)\
+			systemctl status $UNIT; exit $?;;\
+		    -i)\
+			systemctl cat $UNIT; exit $?;;\
+		    -k)\
+			systemctl kill $UNIT; exit $? ;;\
+		    *)\
+			echo "Unknown argument. Also, only a single argument may be passed." >&2 && \
+			    echo && usage && exit 1 ;;\
+		esac
+	    
 	    ;;
+	N)
+	    if [[ ${#OPTARG} -le 30 && ${#OPTARG} -gt 0 ]]; then
+		NAME=$OPTARG
+	    else
+		echo "Invalid name sepc. Names should be > 0 and <= 30 chars." >&2
+		exit 1
+	    fi
+	    ;;
+		
 	S)
 	    SLICE_UNIT="--slice $OPTARG"
 	    ;;
@@ -162,7 +186,7 @@ done
 shift $((OPTIND-1))
 systemd-run --no-block $SYSTEMD_RUN_MACHINE $SLICE_UNIT $TERMINAL\
 	    -p Type=notify -p NotifyAccess=all \
-	    -p ExecStartPre=/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID' \
-	    -p Environment=HOME=/root \
-	    -p ExecStopPost=/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' \
+	    -p ExecStartPre/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID'\ '$NAME' \
+	    -p Environment=HOME=/root -p Environment=NAME=$NAME\
+	    -p ExecStopPost/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' \
 	    $@

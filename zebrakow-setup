@@ -3,6 +3,7 @@
 # Expects arguments in this order:
 # $1 = mode (--start or --stop)
 # $2 = JOB_ID
+# $3 = NAME
 
 export JOB_ID=$2
 export WORK=/run/zebrakow/$JOB_ID
@@ -12,6 +13,9 @@ if [[ $1 == "--start" ]]; then
     mkdir $WORK -p
     ln -sf "$UNIT" $WORK/UNIT
     ln -sf "RUNNING" $WORK/STATE
+    if [[ -n $3 ]]; then
+	ln -sf "$NAME" $WORK/NAME
+    fi
 elif [[ $1 == "--stop" ]]; then
     if [[ $EXIT_CODE -ne "0" ]]; then
 	ln -sf "FAILED" $WORK/STATE
