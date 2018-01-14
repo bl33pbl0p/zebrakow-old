@@ -1,2 +1,2 @@
-* Add a function to check state, first argument taken as JOB_ID and use that throughout. 1 returned for running, 2 for completed, 3 for failed.
-* sanitize input using the state function and deny metadata checks if the unit is dead
+* Add profiles support, and a zebrakow.profile by default, and restrict it as much as possible.
+* Add bash-completion.
