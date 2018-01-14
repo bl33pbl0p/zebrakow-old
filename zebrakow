@@ -28,7 +28,7 @@ function machine() {
 
 function run() {
     if [[ $RUN == "" ]]; then RUN=/bin/bash\ -c; fi
-    $RUN $RUN_CONTAINER_REMOTE "$@"
+    $RUN "$RUN_CONTAINER_REMOTE" "$@"
 }
 
 function metadata() {
@@ -37,8 +37,8 @@ function metadata() {
 	source /etc/machine-info;
     fi
     echo "JOB_ID=$1"
-    echo "CMDLINE=$(cat /proc/$(systemctl status $UNIT | grep Main\ PID: | sed s/\ Main\ PID:\ //g | awk '{print $1}')/comm)"
-    echo "TIME=Running `systemctl status $UNIT | grep Active | sed s/\ \ \ Active:\ active\ \(running\)\ //g`"
+    echo "CMDLINE=$(cat /proc/"$(systemctl status $UNIT | grep Main\ PID: | sed s/\ Main\ PID:\ //g | awk '{print $1}')"/comm)"
+    echo "TIME=Running $(systemctl status $UNIT | grep Active | sed s/\ \ \ Active:\ active\ \(running\)\ //g)"
     echo "UNIT=$UNIT"
     echo "SLICE=$(systemctl show -p Slice $UNIT | sed s/Slice=//g )"
     echo "STATUS=$(systemctl status $UNIT | grep Status: | sed s/\ \ \ Status:\ //g)"
@@ -116,11 +116,11 @@ while getopts "H:M:lthN:j:S:P:" opt; do
 	    run /bin/true && \
 		if [[ ! -e /run/zebrakow ]]; then echo '/run/zebrakow not found!' >&2 && exit 1; fi && \
 		tree /run/zebrakow | head -n-1 && \
-		NUM=$(ls -l /run/zebrakow | grep ^d | wc -l) && \
+		NUM=$(ls -l /run/zebrakow | grep -c ^d) && \
 		   echo && echo "$NUM job(s) listed" && \
-		   RUNNING=$(tree /run/zebrakow | grep RUNNING | wc -l) && \
-		   COMPLETED=$(tree /run/zebrakow | grep COMPLETED | wc -l) && \
-		   FAILED=$(tree /run/zebrakow | grep FAILED | wc -l) && \
+		   RUNNING=$(tree /run/zebrakow | grep -c RUNNING) && \
+		   COMPLETED=$(tree /run/zebrakow | grep -c COMPLETED) && \
+		   FAILED=$(tree /run/zebrakow | grep -c FAILED) && \
 		   echo "└── $RUNNING job(s) running" && \
 		   echo "└── $COMPLETED job(s) completed" && \
 		   echo "└── $FAILED job(s) failed"
@@ -150,18 +150,19 @@ while getopts "H:M:lthN:j:S:P:" opt; do
 		exit 1
 	    fi
 	    run /bin/true && \
-		if [[ $TYPE -eq 1 ]]; then\
-		       if [[ ! -e /run/zebrakow/$JOB_ID ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi && \
-			   echo && export UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT); \
+		if [[ $TYPE -eq 1 ]]; then \
+		    if [[ ! -e /run/zebrakow/$JOB_ID ]]; then echo 'No jobs with this JOB_ID!' >&2; exit 1; fi && \
+			echo && export UNIT=$(readlink /run/zebrakow/$JOB_ID/UNIT); \
 		else \
-		    find /run/zebrakow -name *NAME* | while read fname; do \
-			if [[ $(readlink $fname) == "$NAME" ]]; then\
-			       export UNIT=$(readlink `echo $fname | sed s/NAME/UNIT/g`) && \
-				   export JOB_ID="$(systemctl show -p InvocationID $UNIT | sed s/InvocationID=//g)";\
-			fi \
-	    done \
-		fi; \
-	    echo "Unit $UNIT has JOB_ID $JOB_ID" && echo && \
+	    while read -r fname; do \
+		if [[ "$(readlink "$fname")" == "$NAME" ]]; then \
+		    export UNIT=$(readlink "$(echo "$fname" | sed s/NAME/UNIT/g)") && \
+			export JOB_ID="$(systemctl show -p InvocationID $UNIT | sed s/InvocationID=//g)";\
+		    break;\
+		fi \
+	    done < <(find /run/zebrakow -name "*NAME*");\
+		fi && \
+		echo "Unit $UNIT has JOB_ID $JOB_ID" && echo && \
 		shift $((OPTIND-1)) && \
 		case $1 in \
 		    -u)\
@@ -222,10 +223,10 @@ while getopts "H:M:lthN:j:S:P:" opt; do
 done
 
 shift $((OPTIND-1))
-systemd-run --no-block $SYSTEMD_RUN_MACHINE $SLICE_UNIT $TERMINAL\
+systemd-run --no-block $SYSTEMD_RUN_MACHINE "$SLICE_UNIT" $TERMINAL\
 	    -p Type=notify -p NotifyAccess=all \
-	    $(echo ${options[@]}) \
+	    "${options[@]}" \
 	    -p ExecStartPre/usr/lib/zebrakow/zebrakow-setup\ --start\ '$INVOCATION_ID'\ '$NAME' \
 	    -p Environment=HOME=/root -p Environment=NAME=$NAME\
 	    -p ExecStopPost/usr/lib/zebrakow/zebrakow-setup\ --stop\ '$INVOCATION_ID' \
-	    $@
+	    "$@"
