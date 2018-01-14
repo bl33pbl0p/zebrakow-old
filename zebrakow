@@ -79,7 +79,18 @@ function usage() {
     exit 0
 }
 
-#function state
+function state() {
+    STATE=$(readlink /run/zebrakow/$1/STATE)
+    if [[ "$STATE" == "RUNNING" ]]; then
+	return 1;
+    elif [[ "$STATE" == "COMPLETED" ]]; then
+	return 2;
+    elif [[ "$STATE" == "FAILED" ]]; then
+	return 3;
+    else
+	return 0;
+    fi
+}
 
 while getopts "H:M:lthN:j:S:" opt; do
     case $opt in
@@ -156,14 +167,33 @@ while getopts "H:M:lthN:j:S:" opt; do
 		    -f)\
 			journalctl -u $UNIT; exit $?;;\
 		    -m)\
-			metadata $JOB_ID &&\
-			    exit 0;;\
+			if [[ state -eq 1 ]]; then \
+			    metadata $JOB_ID && exit 0\
+			else \
+			    echo "Cannot fetch metadata of a non-running job." >&2 && exit 1; \
+			fi \
+			;;
 		    -s)\
-			systemctl status $UNIT; exit $?;;\
+			if [[ state -eq 1 ]]; then \
+			    systemctl status $UNIT; exit $?\
+			else \
+			    echo "Cannot show run status of a non-running job." >&2 && exit 1; \
+			fi \
+			;;\
 		    -i)\
-			systemctl cat $UNIT; exit $?;;\
+			if [[ state -eq 1 ]]; then \
+			    systemctl cat $UNIT; exit $?\
+			else \
+			    echo "Cannot show contents of a non-running job." >&2 && exit 1; \
+			fi \
+			;;\
 		    -k)\
-			systemctl kill $UNIT; exit $? ;;\
+			if [[ state -eq 1 ]]; then \
+			    systemctl kill $UNIT; exit $?\
+			else \
+			    echo "Cannot kill a non-running job." >&2 && exit 1; \
+			fi \
+			;;\
 		    *)\
 			echo "Unknown argument. Also, only a single argument may be passed." >&2 && \
 			    echo && usage && exit 1 ;;\
