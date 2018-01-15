@@ -39,7 +39,7 @@ function metadata() {
     echo "JOB_ID=$1"
     COMM=$(cat /proc/"$(systemctl status $UNIT | grep Main\ PID: | sed s/\ Main\ PID:\ //g | awk '{print $1}')"/comm)
     echo "COMM=${COMM}"
-    echo "TIME=Running $(systemctl status $UNIT | grep Active | awk '{print $4 $5 $6 $7 $8 $9 $10 $11}')"
+    echo "TIME=Running $(systemctl status $UNIT | grep Active | awk '{print $4, $5, $6, $7, $8, $9, $10, $11}')"
     echo "UNIT=$UNIT"
     echo "SLICE=$(systemctl show -p Slice $UNIT | sed s/Slice=//g )"
     echo "STATUS=$(systemctl status $UNIT | grep Status: | sed s/\ \ \ Status:\ //g)"
@@ -226,9 +226,12 @@ while getopts "H:M:lthcN:j:S:P:" opt; do
 		else \
 		    echo "Cannot find profile named $OPTARG" >&2 && exit 1;\
 		fi \
-		;;\
-	    :)
+		;;
+	:)
 	    echo "Missing option argument for -$OPTARG" >&2;
+	    exit 1
+	    ;;
+	\?)
 	    exit 1
 	    ;;
     esac

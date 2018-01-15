@@ -1,0 +1,24 @@
+zebrakow_help() {
+echo "-h"
+echo "-H"
+echo "-M"
+echo "-l"
+echo "-t"
+echo "-c"
+echo "-S"
+echo "-P"
+echo "-N"
+echo "-j"
+}
+
+_help_module
+{
+        local cur prev words cword
+        _init_completion -s -n := || return
+        COMPREPLY=( $(zebrakow_help complete ${cword} -- ${words[@]}) )
+        __ltrim_colon_completions "$cur"
+        [[ $COMPREPLY = *[=./] ]] && compopt -o nospace
+        return 0
+}
+
+complete -F _help_module zebrakow
