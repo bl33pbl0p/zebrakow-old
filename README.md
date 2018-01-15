@@ -5,6 +5,6 @@ A job scheduler for Paludis. It wraps `cave` in it's own transient unit and keep
 See the wiki: https://github.com/bl33pbl0p/zebrakow/wiki/Introduction
 
 ## Dependencies
-systemd >= 236
-tree
-bash >= 4.x
+* systemd (v236 or later)
+* tree
+* bash
