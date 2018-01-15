@@ -13,18 +13,18 @@ if [[ $1 == "--start" ]]; then
     mkdir $WORK -p
     ln -sf "$UNIT" $WORK/UNIT
     ln -sf "RUNNING" $WORK/STATE
-    if [[ -n $3 ]]; then
-	ln -sf "$NAME" $WORK/NAME
+    if [[ -n ${*:3} ]]; then
+	ln -sf "${*:3}" $WORK/NAME
     fi
 elif [[ $1 == "--stop" ]]; then
-    if [[ $EXIT_CODE -ne "0" ]]; then
+    if [[ $EXIT_CODE -ne 0 ]]; then
 	ln -sf "FAILED" $WORK/STATE
-	echo "SERVICE_RESULT $SERVICE_RESULT"
-	echo "EXIT_CODE $EXIT_CODE"
-	echo "EXIT_STATUS $EXIT_STATUS"
     else
 	ln -sf "COMPLETED" $WORK/STATE
     fi
+    echo "SERVICE_RESULT $SERVICE_RESULT"
+    echo "EXIT_CODE $EXIT_CODE"
+    echo "EXIT_STATUS $EXIT_STATUS"
 else
     exit 1
 fi
