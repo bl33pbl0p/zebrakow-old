@@ -16,7 +16,7 @@ install:
 	@install -v -d "$(DESTDIR)$(MANDIR)/man1" && install -m 0644 -v man/zebrakow.1 "$(DESTDIR)$(MANDIR)/man1/zebrakow.1"
 	@install -v -d "$(DESTDIR)$(BASHCOMPDIR)" && install -m 0644 -v bash-completion/zebrakow "$(DESTDIR)$(BASHCOMPDIR)/zebrakow"
 	@install -v -d "$(DESTDIR)$(SYSTEMDUNITDIR)/system" && install -m 0644 -v units/zebrakow.slice "$(DESTDIR)$(SYSTEMDUNITDIR)/system/zebrakow.slice"
-	@install -v -d "/etc/zebrakow" && install -m 0644 -v src/zebrakow.profile "/etc/zebrakow/zebrakow.profile"
+	@install -v -d "/etc/zebrakow" && install -m 0644 -v etc/zebrakow.profile "/etc/zebrakow/zebrakow.profile"
 uninstall:
 	@rm -vrf \
 		"$(DESTDIR)$(BINDIR)/zebrakow" \
