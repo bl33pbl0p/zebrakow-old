@@ -1,0 +1,12 @@
+[Unit]
+Description=Default Slice Unit for zebrakow
+Documentation=https://github.com/bl33pbl0p/zebrakow/wiki
+Before=slices.target
+
+[Slice]
+CPUAccounting=true
+MemoryAccounting=true
+TasksAccounting=true
+IOAccounting=true
+IPAccounting=true
+
